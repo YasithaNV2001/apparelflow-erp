@@ -14,6 +14,7 @@ import { TEST_USERS } from "./fixtures";
 
 export interface TestOrderItem {
   id: number;
+  componentId: number;
   componentName: string;
   expectedQty: number;
 }
@@ -86,6 +87,7 @@ export async function createOrder(db: Db, options: OrderOptions = {}): Promise<T
       .returning();
     items.push({
       id: item.id,
+      componentId: component.id,
       componentName: component.componentName,
       expectedQty: item.expectedQty,
     });
@@ -108,6 +110,17 @@ export async function setCounts(
       .set({ actualQty: counts[index] })
       .where(eq(verificationItems.id, item.id));
   }
+}
+
+/** A count sheet as the verifier terminal sends it: one entry per item, in sheet order. */
+export function countSheet(
+  order: TestOrder,
+  counts: readonly (number | null)[],
+): { componentId: number; actualQty: number | null }[] {
+  if (counts.length !== order.items.length) {
+    throw new Error(`Expected ${order.items.length} counts, got ${counts.length}`);
+  }
+  return order.items.map((item, index) => ({ componentId: item.componentId, actualQty: counts[index] }));
 }
 
 export async function findUserId(db: Db, email: string): Promise<number> {
