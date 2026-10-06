@@ -20,5 +20,7 @@ export default defineConfig({
     },
     // PGlite boots a real Postgres in WebAssembly; the first query in a file can take seconds.
     testTimeout: 20_000,
+    // Booting PGlite and applying the migrations happens in beforeAll; several files do it in parallel.
+    hookTimeout: 60_000,
   },
 });
