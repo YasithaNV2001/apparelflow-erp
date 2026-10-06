@@ -29,11 +29,13 @@ export interface NewOrderPayload {
 
 export interface NewOrderCheck {
   errors: NewOrderErrors;
+  /** The fields that are already valid, so the live preview can update field by field. */
+  values: Partial<NewOrderPayload>;
   /** The payload for POST /api/orders, or null while any field is invalid. */
   payload: NewOrderPayload | null;
 }
 
-type FieldResult<T> = { value: T } | { error: string };
+export type FieldResult<T> = { value: T } | { error: string };
 
 const REQUIRED_MESSAGES = {
   recipeId: "Choose a recipe.",
@@ -47,36 +49,47 @@ const REQUIRED_MESSAGES = {
  * so a value the form accepts is a value the server accepts.
  */
 export function checkNewOrderForm(form: NewOrderFormValues): NewOrderCheck {
-  const fields = {
-    recipeId: checkRecipeId(form.recipeId),
-    targetQty: checkNumber(parseWholeNumber(form.targetQty), targetQtySchema, REQUIRED_MESSAGES.targetQty),
-    fabricRollId: checkFabricRollId(form.fabricRollId),
-    actualFabricYds: checkNumber(parseYards(form.actualFabricYds), fabricYdsSchema, REQUIRED_MESSAGES.actualFabricYds),
-  };
-
   const errors: NewOrderErrors = {};
-  for (const [name, result] of Object.entries(fields)) {
-    if ("error" in result) {
-      errors[name as keyof NewOrderFormValues] = result.error;
-    }
-  }
-  if (
-    "error" in fields.recipeId ||
-    "error" in fields.targetQty ||
-    "error" in fields.fabricRollId ||
-    "error" in fields.actualFabricYds
-  ) {
-    return { errors, payload: null };
-  }
+  const values: Partial<NewOrderPayload> = {};
+  collect("recipeId", checkRecipeId(form.recipeId), errors, values);
+  collect(
+    "targetQty",
+    checkNumber(parseWholeNumber(form.targetQty), targetQtySchema, REQUIRED_MESSAGES.targetQty),
+    errors,
+    values,
+  );
+  collect("fabricRollId", checkFabricRollId(form.fabricRollId), errors, values);
+  collect("actualFabricYds", checkFabricYds(form.actualFabricYds), errors, values);
+
+  const { recipeId, targetQty, fabricRollId, actualFabricYds } = values;
+  const isComplete =
+    recipeId !== undefined &&
+    targetQty !== undefined &&
+    fabricRollId !== undefined &&
+    actualFabricYds !== undefined;
   return {
     errors,
-    payload: {
-      recipeId: fields.recipeId.value,
-      targetQty: fields.targetQty.value,
-      fabricRollId: fields.fabricRollId.value,
-      actualFabricYds: fields.actualFabricYds.value,
-    },
+    values,
+    payload: isComplete ? { recipeId, targetQty, fabricRollId, actualFabricYds } : null,
   };
+}
+
+/** The fabric-used field on its own, also used by the resubmit dialog. */
+export function checkFabricYds(raw: string): FieldResult<number> {
+  return checkNumber(parseYards(raw), fabricYdsSchema, REQUIRED_MESSAGES.actualFabricYds);
+}
+
+function collect<K extends keyof NewOrderPayload>(
+  name: K,
+  result: FieldResult<NewOrderPayload[K]>,
+  errors: NewOrderErrors,
+  values: Partial<NewOrderPayload>,
+): void {
+  if ("error" in result) {
+    errors[name] = result.error;
+  } else {
+    values[name] = result.value;
+  }
 }
 
 function checkRecipeId(raw: string): FieldResult<number> {

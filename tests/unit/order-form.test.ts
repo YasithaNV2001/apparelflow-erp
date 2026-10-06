@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { checkNewOrderForm, previewOrder, type NewOrderFormValues } from "@/domain/order-form";
+import {
+  checkFabricYds,
+  checkNewOrderForm,
+  previewOrder,
+  type NewOrderFormValues,
+} from "@/domain/order-form";
 
 const VALID: NewOrderFormValues = {
   recipeId: "1",
@@ -19,10 +24,8 @@ const BLOUSE = {
 
 describe("checkNewOrderForm", () => {
   it("turns valid text fields into the exact API payload", () => {
-    expect(checkNewOrderForm(VALID)).toEqual({
-      errors: {},
-      payload: { recipeId: 1, targetQty: 50, fabricRollId: "FAB-ROLL-882", actualFabricYds: 94 },
-    });
+    const payload = { recipeId: 1, targetQty: 50, fabricRollId: "FAB-ROLL-882", actualFabricYds: 94 };
+    expect(checkNewOrderForm(VALID)).toEqual({ errors: {}, values: payload, payload });
   });
 
   it("reports every empty field as required, never as 0", () => {
@@ -80,5 +83,26 @@ describe("previewOrder", () => {
     const preview = previewOrder(BLOUSE, 50, null);
     expect(preview.expectedFabricYds).toBe(90);
     expect(preview.wastage).toBeNull();
+  });
+});
+
+describe("checkNewOrderForm: per-field values for the live preview", () => {
+  it("keeps the fields that are already valid while others are not", () => {
+    const result = checkNewOrderForm({ recipeId: "2", targetQty: "60", fabricRollId: "", actualFabricYds: "7x" });
+    expect(result.values).toEqual({ recipeId: 2, targetQty: 60 });
+    expect(result.payload).toBeNull();
+  });
+});
+
+describe("checkFabricYds", () => {
+  it.each([
+    ["95.5", { value: 95.5 }],
+    ["", { error: "Enter the fabric used, in yards." }],
+  ])("checks %j", (raw, expected) => {
+    expect(checkFabricYds(raw)).toEqual(expected);
+  });
+
+  it("rejects more than 2 decimals", () => {
+    expect(checkFabricYds("1.234")).toHaveProperty("error");
   });
 });
