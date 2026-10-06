@@ -6,6 +6,7 @@ import {
   FABRIC_ROLL_ID_PATTERN,
   FABRIC_YDS_MAX,
   FABRIC_YDS_MAX_DECIMALS,
+  PASSWORD_MAX_LENGTH,
   REJECTION_NOTE_MAX_LENGTH,
   REJECTION_NOTE_MIN_LENGTH,
   TARGET_QTY_MAX,
@@ -169,3 +170,20 @@ export const rejectOrderSchema = z.object({
   items: countItemsSchema.optional(),
 });
 export type RejectOrderInput = z.infer<typeof rejectOrderSchema>;
+
+
+
+export const loginSchema = z.object({
+  // Accounts are stored lower-case (users_email_lower_case CHECK), so normalise before comparing.
+  email: z
+    .string({ error: "Enter your email address." })
+    .trim()
+    .toLowerCase()
+    .pipe(z.email({ error: "Enter a valid email address." })),
+  // Never trimmed: spaces can be part of a password.
+  password: z
+    .string({ error: "Enter your password." })
+    .min(1)
+    .max(PASSWORD_MAX_LENGTH, { error: "That password is too long." }),
+});
+export type LoginInput = z.infer<typeof loginSchema>;

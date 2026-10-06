@@ -6,6 +6,7 @@ import {
   createOrderSchema,
   fabricRollIdSchema,
   fabricYdsSchema,
+  loginSchema,
   parseWholeNumber,
   parseYards,
   rejectOrderSchema,
@@ -213,5 +214,25 @@ describe("rejectOrderSchema", () => {
       items: [{ componentId: 5, actualQty: null }],
     });
     expect(result.success).toBe(true);
+  });
+});
+
+
+
+describe("loginSchema", () => {
+  it("trims and lower-cases the email but keeps the password exactly", () => {
+    expect(
+      loginSchema.parse({ email: "  Cutting.Verifier@ApparelFlow.TEST ", password: " pass word " }),
+    ).toEqual({ email: "cutting.verifier@apparelflow.test", password: " pass word " });
+  });
+
+  it.each([
+    { label: "an empty payload", body: {} },
+    { label: "a malformed email", body: { email: "not-an-email", password: "x" } },
+    { label: "an empty password", body: { email: "a@b.test", password: "" } },
+    { label: "a numeric password", body: { email: "a@b.test", password: 1234 } },
+    { label: "an overlong password", body: { email: "a@b.test", password: "x".repeat(201) } },
+  ])("rejects $label", ({ body }) => {
+    expect(loginSchema.safeParse(body).success).toBe(false);
   });
 });
