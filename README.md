@@ -14,7 +14,7 @@ Next.js 16 (App Router, TypeScript strict, Tailwind CSS v4) · PostgreSQL on Sup
 
 ## Local development
 
-Requires Node.js 20.9 or newer.
+Requires Node.js 22.12 or newer.
 
 ```bash
 npm ci
