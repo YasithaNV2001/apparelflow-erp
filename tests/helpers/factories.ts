@@ -8,6 +8,7 @@ import {
   recipes,
   users,
   verificationItems,
+  verificationLogs,
 } from "@/server/db/schema";
 import { TEST_USERS } from "./fixtures";
 
@@ -58,6 +59,9 @@ export async function createOrder(db: Db, options: OrderOptions = {}): Promise<T
       createdBy: supervisorId,
       expectedFabricYds: calculateExpectedFabricYds(targetQty, recipe.stdFabricYards),
       wastageCapSnapshot: recipe.wastageCap,
+      // Mirror createOrder(): a submitted order starts at round 1 with a submission time.
+      verificationRound: status === "PENDING_VERIFICATION" ? 1 : 0,
+      submittedAt: status === "PENDING_VERIFICATION" ? new Date() : null,
     })
     .returning();
 
@@ -112,4 +116,33 @@ export async function findUserId(db: Db, email: string): Promise<number> {
     throw new Error(`Unknown user ${email}; did resetDb() run?`);
   }
   return user.id;
+}
+
+/**
+ * Records a verifier decision directly, the way the P4 approve/reject services will:
+ * status change first (the triggers check it), then the append-only log row.
+ * The order must be PENDING_VERIFICATION; APPROVED also needs every count in place.
+ */
+export async function recordDecision(
+  db: Db,
+  order: TestOrder,
+  decision: "APPROVED" | "REJECTED",
+  rejectionNote: string | null = null,
+): Promise<void> {
+  await db
+    .update(cuttingOrders)
+    .set({ status: decision === "APPROVED" ? "VERIFIED" : "REJECTED" })
+    .where(eq(cuttingOrders.id, order.id));
+  await db.insert(verificationLogs).values({
+    orderId: order.id,
+    verifierId: await findUserId(db, TEST_USERS.verifier.email),
+    decision,
+    rejectionNote,
+    wastagePct: 4.44,
+    verificationRound: 1,
+    expectedFabricYds: 90,
+    actualFabricYds: 94,
+    wastageExceedsCap: false,
+    variances: [],
+  });
 }

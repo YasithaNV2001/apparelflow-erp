@@ -27,3 +27,8 @@ export function apiRequest(
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
 }
+
+/** The second argument Next.js passes to a dynamic route such as /api/orders/[id]. */
+export function routeParams(id: number | string): { params: Promise<{ id: string }> } {
+  return { params: Promise.resolve({ id: String(id) }) };
+}
