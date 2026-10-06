@@ -1,26 +1,99 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Never follow the OS dark mode: `dark:` only applies under a .dark class we never set. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Light theme only (PLAN §8.3, D24).
+  Text pairs are at least 4.5:1; borders and focus rings at least 3:1.
+*/
+@theme {
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-ink: #0f172a;
+  --color-ink-muted: #334155;
+  --color-field-border: #64748b;
+  --color-field-disabled: #f1f5f9;
+  --color-placeholder: #64748b;
+  --color-focus: #1d4ed8;
+  --color-error: #b91c1c;
+
+  --color-primary: #1d4ed8;
+  --color-primary-hover: #1e40af;
+  --color-danger: #b91c1c;
+  --color-danger-hover: #991b1b;
+  --color-disabled: #e2e8f0;
+  --color-disabled-ink: #475569;
+
+  --color-status-green: #dcfce7;
+  --color-status-green-ink: #14532d;
+  --color-status-yellow: #fef3c7;
+  --color-status-yellow-ink: #78350f;
+  --color-status-red: #fee2e2;
+  --color-status-red-ink: #7f1d1d;
+  --color-status-uncounted: #f1f5f9;
+  --color-status-uncounted-ink: #334155;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: light;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    background-color: var(--color-page);
+    color: var(--color-ink);
+  }
+
+  /* Preflight makes form controls inherit their colour on a transparent background. */
+  input,
+  select,
+  textarea,
+  option,
+  optgroup {
+    color: var(--color-ink);
+    background-color: var(--color-surface);
+  }
+
+  input,
+  select,
+  textarea {
+    border: 1px solid var(--color-field-border);
+  }
+
+  ::placeholder {
+    color: var(--color-placeholder);
+    opacity: 1;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    color: var(--color-disabled-ink);
+    background-color: var(--color-field-disabled);
+    cursor: not-allowed;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Browser autofill paints its own colours; force ink on white. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-ink);
+    box-shadow: 0 0 0 1000px var(--color-surface) inset;
+    caret-color: var(--color-ink);
+  }
 }
