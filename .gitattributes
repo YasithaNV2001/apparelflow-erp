@@ -1,0 +1,4 @@
+# Commit and check out every text file with LF endings on every OS:
+# development is on Windows, Vercel builds on Linux.
+# text=auto lets Git detect binaries (images, favicon) and leave them alone.
+* text=auto eol=lf
