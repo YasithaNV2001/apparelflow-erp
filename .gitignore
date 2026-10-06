@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files: real values stay local; only the placeholder template is committed
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -40,6 +41,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# challenge brief (company document, never published)
+*.pdf
 
 # private working notes (restate the confidential brief; kept local)
 PLAN.md
