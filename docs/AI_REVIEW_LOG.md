@@ -38,4 +38,10 @@ A running, factual record of problems found in AI-generated code during this pro
 - Phase/Task: P2.2      - Found by: Claude self-review (reproduced with `next build --webpack`)
 - What the AI produced: src/server/http/with-api.ts typed every route export as `(request: Request, context?: { params: Promise<RouteParams> }) => Promise<Response>`.
 - Why it was wrong/risky: correctness. Next's webpack build infers each route export's second parameter and requires `{ params: Promise<…> }`; the optional parameter made it `… | undefined`, so `next build --webpack` failed type checking for all four API routes. The default Turbopack build does not run that check, so it went unnoticed.
-- Fix: `RouteHandler` became an interface with two call signatures, the Next.js one last, which both builders accept while tests can still call a route with just a request.   - Commit: <c6fb59d>
+- Fix: `RouteHandler` became an interface with two call signatures, the Next.js one last, which both builders accept while tests can still call a route with just a request.   - Commit: c6fb59d
+
+## 2026-10-06 22:19 — Test factory created "submitted" orders that the app could never produce
+- Phase/Task: P3.2      - Found by: failing test (orders-submit: resubmit expected round 2, got 1)
+- What the AI produced: tests/helpers/factories.ts `createOrder()` (written in P1.6) inserted PENDING_VERIFICATION orders with `verification_round = 0` and no `submitted_at`.
+- Why it was wrong/risky: correctness (test fidelity). The real `createOrder` service gives a submitted order round 1 and a submission time, so tests built on the factory exercised a state production can never reach and would have hidden off-by-one bugs in round counting.
+- Fix: the factory now mirrors the service: round 1 and `submitted_at` set for PENDING_VERIFICATION orders.   - Commit: eaed27c
