@@ -25,8 +25,8 @@ async function main(): Promise<void> {
     return;
   }
   console.log(`Resetting ${host} ...`);
-  await resetDatabase(getDb());
-  console.log("Reset complete: tables emptied and demo data re-seeded.");
+  const { demoOrders } = await resetDatabase(getDb());
+  console.log(`Reset complete: tables emptied, then 3 demo users, 2 recipes and ${demoOrders} demo orders seeded.`);
 }
 
 main()
