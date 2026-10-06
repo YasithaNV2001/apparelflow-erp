@@ -14,4 +14,20 @@ A running, factual record of problems found in AI-generated code during this pro
 
 ## Entries
 
-_None yet._
+## 2026-10-06 15:35 — Schema location broke drizzle-kit
+- Phase/Task: P1.5      - Found by: Claude self-review (reproduced: `drizzle-kit generate` crashed at schema.ts:1)
+- What the AI produced: PLAN.md §4.3 puts the Drizzle schema in `src/server/db/schema.ts`, where every file must start with `import "server-only"`, and lists `db:generate` as plain `drizzle-kit generate`.
+- Why it was wrong/risky: correctness. `server-only` throws unless the `react-server` export condition is active, so drizzle-kit (a plain Node CLI) crashed while loading the schema and no migration could be generated.
+- Fix: `db:generate` runs `node --conditions=react-server ./node_modules/drizzle-kit/bin.cjs generate`, the same condition Next.js uses for server code (package.json).   - Commit: 1cf0b11
+
+## 2026-10-06 15:35 — Rejection-note CHECK accepted a REJECTED log with a NULL note
+- Phase/Task: P1.5      - Found by: Claude self-review (reproduced on PGlite)
+- What the AI produced: PLAN.md §6.1 CHECK on verification_logs: `decision <> 'REJECTED' OR char_length(btrim(rejection_note)) >= 10`
+- Why it was wrong/risky: correctness/security. With a NULL note the expression is NULL, and Postgres treats a NULL CHECK result as passing, so the database accepted a REJECTED decision with no reason, defeating the DB-level half of the mandatory rejection note (R12).
+- Fix: `decision <> 'REJECTED' OR (rejection_note IS NOT NULL AND char_length(btrim(rejection_note)) >= 10)` (constraint `verification_logs_rejection_needs_note`, src/server/db/schema.ts).   - Commit: 1cf0b11
+
+## 2026-10-06 15:35 — Integrity triggers did not guard INSERT
+- Phase/Task: P1.5      - Found by: Claude self-review
+- What the AI produced: PLAN.md §6.2 declared `cutting_orders_guard` and `verification_items_guard` as `BEFORE UPDATE OR DELETE` only.
+- Why it was wrong/risky: security. An order could be inserted directly with status VERIFIED, skipping the DB-level hard stop, and items could be inserted already counted, so "the database enforces the hard stop" only held for updates.
+- Fix: both triggers also fire on INSERT; a new order must start in CUTTING_IN_PROGRESS or PENDING_VERIFICATION and items must be inserted uncounted (drizzle/0001_integrity_guards.sql).   - Commit: ec80713
