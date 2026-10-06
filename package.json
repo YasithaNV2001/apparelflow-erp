@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "node --conditions=react-server ./node_modules/drizzle-kit/bin.cjs generate"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",
