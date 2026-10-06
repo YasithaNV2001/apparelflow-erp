@@ -15,6 +15,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // Migrates one database before any test file runs; each file boots from its snapshot.
+    globalSetup: ["./tests/helpers/global-setup.ts"],
     env: {
       JWT_SECRET: "test-only-secret-never-used-outside-vitest-0123456789",
     },

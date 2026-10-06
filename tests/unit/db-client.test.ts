@@ -1,8 +1,6 @@
-import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { __setDbForTests, closeDb, getDb, type Db } from "@/server/db/client";
-import * as schema from "@/server/db/schema";
+import { closeDb, getDb } from "@/server/db/client";
+import { createTestDb } from "../helpers/test-db";
 
 describe("getDb", () => {
   afterEach(() => {
@@ -15,19 +13,16 @@ describe("getDb", () => {
   });
 
   it("returns the database the test harness installed", async () => {
-    const client = new PGlite();
-    const testDb: Db = drizzle(client, { schema });
-    __setDbForTests(testDb);
-    expect(getDb()).toBe(testDb);
-    await client.close();
+    const testDb = await createTestDb();
+    expect(getDb()).toBe(testDb.db);
+    await testDb.close();
   });
 
   it("forgets the database after closeDb, so scripts can exit cleanly", async () => {
-    const client = new PGlite();
-    __setDbForTests(drizzle(client, { schema }));
+    const testDb = await createTestDb();
     await closeDb();
     vi.stubEnv("DATABASE_URL", "");
     expect(() => getDb()).toThrow("DATABASE_URL is not set");
-    await client.close();
+    await testDb.close();
   });
 });
