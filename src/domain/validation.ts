@@ -4,6 +4,7 @@ import {
   COUNT_MAX,
   COUNT_MIN,
   FABRIC_ROLL_ID_PATTERN,
+  ORDER_STATUSES,
   FABRIC_YDS_MAX,
   FABRIC_YDS_MAX_DECIMALS,
   PASSWORD_MAX_LENGTH,
@@ -187,3 +188,8 @@ export const loginSchema = z.object({
     .max(PASSWORD_MAX_LENGTH, { error: "That password is too long." }),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/** The optional ?status= filter on the supervisor's order list (PLAN §7.1). */
+export const orderStatusFilterSchema = z
+  .enum(ORDER_STATUSES, { error: "Unknown order status." })
+  .optional();
