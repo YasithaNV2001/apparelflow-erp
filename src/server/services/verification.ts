@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { ORDER_STATUS_LABELS } from "../../domain/order-status";
 import { classifyComponent } from "../../domain/traffic-light";
-import type { ApproveOrderInput, SaveCountsInput } from "../../domain/validation";
+import type { ApproveOrderInput, RejectOrderInput, SaveCountsInput } from "../../domain/validation";
 import { calculateWastage } from "../../domain/wastage";
 import type { OrderDto, OrderListItemDto } from "../../lib/api-types";
 import type { SessionUser } from "../auth/session";
@@ -88,15 +88,8 @@ export async function approveOrder(
     const variances = toVarianceSnapshot(await loadCountSheet(tx, orderId));
     assertApprovable(variances);
 
-    // Step 5: the status condition makes a lost race a 409 instead of a double approval.
-    const approved = await tx
-      .update(cuttingOrders)
-      .set({ status: "VERIFIED" })
-      .where(and(eq(cuttingOrders.id, orderId), eq(cuttingOrders.status, "PENDING_VERIFICATION")))
-      .returning({ id: cuttingOrders.id });
-    if (approved.length === 0) {
-      throw new ConcurrentUpdateError();
-    }
+    // Step 5: move to VERIFIED only if still pending; the DB trigger re-checks the counts here.
+    await closeVerification(tx, orderId, "VERIFIED");
 
     // Step 6: the append-only audit record, signed by the session user at the database's clock.
     await insertDecisionLog(tx, order, user, variances, {
@@ -108,6 +101,53 @@ export async function approveOrder(
   });
   // Step 7: committed. The verifier decided it, so it stays visible to them.
   return loadOrderDto(db, orderId);
+}
+
+/**
+ * Sends a batch back to the cutting supervisor with a mandatory reason (PLAN §5.2). Allowed even
+ * when every count matches, e.g. for a visible fabric defect (D11). Counts sent with the request
+ * are saved first, so the log's variance snapshot shows exactly what the verifier saw.
+ */
+export async function rejectOrder(
+  user: SessionUser,
+  orderId: number,
+  input: RejectOrderInput,
+): Promise<OrderDto> {
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    const order = await lockOrderForVerification(tx, user, orderId, "it cannot be rejected");
+    if (input.items) {
+      assertKnownComponents(await loadCountSheet(tx, orderId), input.items);
+      await writeCounts(tx, user, orderId, input.items);
+    }
+    const variances = toVarianceSnapshot(await loadCountSheet(tx, orderId));
+    await closeVerification(tx, orderId, "REJECTED");
+    await insertDecisionLog(tx, order, user, variances, {
+      decision: "REJECTED",
+      approvalNote: null,
+      rejectionNote: input.rejectionNote,
+    });
+  });
+  return loadOrderDto(db, orderId);
+}
+
+/**
+ * Ends a verification round. The status condition in the WHERE clause turns a lost race into a
+ * 409 instead of a second decision, even if the row lock were ever removed (PLAN §5.5 step 5).
+ */
+async function closeVerification(
+  tx: Db,
+  orderId: number,
+  status: "VERIFIED" | "REJECTED",
+): Promise<void> {
+  const closed = await tx
+    .update(cuttingOrders)
+    .set({ status })
+    .where(and(eq(cuttingOrders.id, orderId), eq(cuttingOrders.status, "PENDING_VERIFICATION")))
+    .returning({ id: cuttingOrders.id });
+  if (closed.length === 0) {
+    throw new ConcurrentUpdateError();
+  }
 }
 
 /**
