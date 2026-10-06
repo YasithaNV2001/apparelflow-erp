@@ -27,10 +27,14 @@ export interface OrderView {
 }
 
 /**
- * Loads the orders matching `where`, newest first, with items, summary and logs.
- * Three queries in total, however many orders match, so lists never do one query per row.
+ * Loads the orders matching `where` with items, summary and logs, newest first unless `orderBy`
+ * says otherwise. Three queries in total, however many orders match, so lists never do one query per row.
  */
-export async function findOrderViews(db: Db, where?: SQL): Promise<OrderView[]> {
+export async function findOrderViews(
+  db: Db,
+  where?: SQL,
+  orderBy: SQL[] = [desc(cuttingOrders.id)],
+): Promise<OrderView[]> {
   const orderRows = await db
     .select({
       order: cuttingOrders,
@@ -46,7 +50,7 @@ export async function findOrderViews(db: Db, where?: SQL): Promise<OrderView[]> 
     .innerJoin(recipes, eq(recipes.id, cuttingOrders.recipeId))
     .innerJoin(users, eq(users.id, cuttingOrders.createdBy))
     .where(where)
-    .orderBy(desc(cuttingOrders.id));
+    .orderBy(...orderBy);
   if (orderRows.length === 0) {
     return [];
   }
