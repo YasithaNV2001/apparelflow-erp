@@ -19,11 +19,15 @@ export type Access = "public" | "signed-in" | readonly [Role, ...Role[]];
 
 type RouteParams = Record<string, string>;
 
-/** The signature Next.js calls a route export with. Tests call it the same way. */
-export type RouteHandler = (
-  request: Request,
-  context?: { params: Promise<RouteParams> },
-) => Promise<Response>;
+/**
+ * A route export. Next.js always calls it with (request, { params }); tests may leave out the
+ * context for routes without dynamic segments. The two-argument signature must stay last:
+ * Next's build-time route check infers the parameter types from the last signature.
+ */
+export interface RouteHandler  {
+  (request: Request):Promise<Response>;
+  (request: Request, context: { params: Promise<RouteParams> }):Promise<Response>;
+}
 
 export interface ApiContext<A extends Access, S extends z.ZodType | undefined> {
   request: Request;
@@ -48,7 +52,8 @@ export function withApi<const A extends Access, S extends z.ZodType | undefined 
   options: ApiOptions<A, S>,
   handler: (context: ApiContext<A, S>) => Promise<Response>,
 ): RouteHandler {
-  return async (request, routeContext) => {
+    return async (request: Request, routeContext?: { params: Promise<RouteParams> }) => {
+
     let user: SessionUser | null = null;
     try {
       user = await authenticate(request, options.access);
