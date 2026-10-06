@@ -14,6 +14,7 @@ const MAX_CONNECTIONS = 5;
 const globalForDb = globalThis as typeof globalThis & { apparelflowSql?: Sql };
 
 let db: Db | undefined;
+let sqlClient: Sql | undefined;
 
 export function getDb(): Db {
   if (db === undefined) {
@@ -27,12 +28,20 @@ export function __setDbForTests(testDb: Db): void {
   db = testDb;
 }
 
+/** Closes the connection pool so command-line scripts can exit. Request handlers never call this. */
+export async function closeDb(): Promise<void> {
+  await sqlClient?.end();
+  sqlClient = undefined;
+  globalForDb.apparelflowSql = undefined;
+  db = undefined;
+}
+
 function createDb(): Db {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error("DATABASE_URL is not set");
   }
-  const client =
+  sqlClient =
     globalForDb.apparelflowSql ??
     postgres(url, {
       // Supabase's transaction pooler (port 6543) does not support prepared statements.
@@ -41,7 +50,7 @@ function createDb(): Db {
       ssl: "require",
     });
   if (process.env.NODE_ENV !== "production") {
-    globalForDb.apparelflowSql = client;
+    globalForDb.apparelflowSql = sqlClient;
   }
-  return drizzle(client, { schema });
+  return drizzle(sqlClient, { schema });
 }
