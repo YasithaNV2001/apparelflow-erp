@@ -10,6 +10,9 @@ export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 // Small pool per server instance; Supabase's transaction pooler does the real pooling.
 const MAX_CONNECTIONS = 5;
 
+// TLS is required, unless the URL itself opts out: only a local development Postgres should.
+const SSL_DISABLED_IN_URL = /[?&]sslmode=disable(&|$)/;
+
 // Next's dev server re-runs modules on every edit; reuse one pool instead of leaking a new one each time.
 const globalForDb = globalThis as typeof globalThis & { apparelflowSql?: Sql };
 
@@ -47,7 +50,7 @@ function createDb(): Db {
       // Supabase's transaction pooler (port 6543) does not support prepared statements.
       prepare: false,
       max: MAX_CONNECTIONS,
-      ssl: "require",
+      ssl: SSL_DISABLED_IN_URL.test(url) ? false : "require",
     });
   if (process.env.NODE_ENV !== "production") {
     globalForDb.apparelflowSql = sqlClient;
