@@ -34,6 +34,9 @@ export const FABRIC_YDS_MAX_DECIMALS = 2;
 export const REJECTION_NOTE_MIN_LENGTH = 10;
 export const REJECTION_NOTE_MAX_LENGTH = 500;
 export const APPROVAL_NOTE_MAX_LENGTH = 500;
+// Generous upper bound so a login request cannot carry an absurdly long string.
+export const PASSWORD_MAX_LENGTH = 200;
+
 
 // 3–40 characters: letters, digits and dashes, starting with a letter or digit (after trim + upper-case).
 export const FABRIC_ROLL_ID_PATTERN = /^[A-Z0-9][A-Z0-9-]{2,39}$/;

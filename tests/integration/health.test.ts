@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/health/route";
+import { apiRequest } from "../helpers/auth";
 import { createTestDb } from "../helpers/test-db";
 
 describe("GET /api/health", () => {
   it("returns 200 { ok: true } when the database answers", async () => {
     const testDb = await createTestDb();
-    const response = await GET();
+    const response = await GET(apiRequest("/api/health"));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
     await testDb.close();
@@ -16,16 +17,13 @@ describe("GET /api/health", () => {
     await testDb.close(); // the installed database now refuses every query
     const logError = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const response = await GET();
+    const response = await GET(apiRequest("/api/health"));
 
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({
-      error: {
-        code: "INTERNAL_ERROR",
-        message: "The service is temporarily unavailable.",
-      },
+      error: { code: "INTERNAL_ERROR", message: "Something went wrong. Please try again." },
     });
-    expect(logError).toHaveBeenCalledOnce();
+    expect(logError).toHaveBeenCalledWith("[GET /api/health] unexpected error", expect.any(Error));
     logError.mockRestore();
   });
 });

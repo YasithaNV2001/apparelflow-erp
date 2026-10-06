@@ -31,3 +31,11 @@ A running, factual record of problems found in AI-generated code during this pro
 - What the AI produced: PLAN.md §6.2 declared `cutting_orders_guard` and `verification_items_guard` as `BEFORE UPDATE OR DELETE` only.
 - Why it was wrong/risky: security. An order could be inserted directly with status VERIFIED, skipping the DB-level hard stop, and items could be inserted already counted, so "the database enforces the hard stop" only held for updates.
 - Fix: both triggers also fire on INSERT; a new order must start in CUTTING_IN_PROGRESS or PENDING_VERIFICATION and items must be inserted uncounted (drizzle/0001_integrity_guards.sql).   - Commit: ec80713
+
+
+
+## 2026-10-06 20:15 — withApi's route signature failed Next's webpack route type check
+- Phase/Task: P2.2      - Found by: Claude self-review (reproduced with `next build --webpack`)
+- What the AI produced: src/server/http/with-api.ts typed every route export as `(request: Request, context?: { params: Promise<RouteParams> }) => Promise<Response>`.
+- Why it was wrong/risky: correctness. Next's webpack build infers each route export's second parameter and requires `{ params: Promise<…> }`; the optional parameter made it `… | undefined`, so `next build --webpack` failed type checking for all four API routes. The default Turbopack build does not run that check, so it went unnoticed.
+- Fix: `RouteHandler` became an interface with two call signatures, the Next.js one last, which both builders accept while tests can still call a route with just a request.   - Commit: <c6fb59d>

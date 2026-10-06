@@ -1,29 +1,9 @@
 import "server-only";
 import { sql } from "drizzle-orm";
+import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "../../domain/demo-accounts";
 import { hashPassword } from "../auth/password";
 import type { Db } from "./client";
 import { recipeComponents, recipes, users } from "./schema";
-
-/** Public demo credentials, shown in the README and on the login panel (PLAN §6.3, D22). */
-export const DEMO_PASSWORD = "ApparelFlow#2026";
-
-export const DEMO_USERS = [
-  {
-    email: "cutting.supervisor@apparelflow.test",
-    role: "cutting_supervisor",
-    fullName: "Demo Cutting Supervisor",
-  },
-  {
-    email: "cutting.verifier@apparelflow.test",
-    role: "cutting_verifier",
-    fullName: "Demo Cutting Verifier",
-  },
-  {
-    email: "sewing.supervisor@apparelflow.test",
-    role: "sewing_supervisor",
-    fullName: "Demo Sewing Supervisor",
-  },
-] as const;
 
 // Names and numbers exactly as PDF §7.1 specifies them (PLAN §6.3).
 export const SEED_RECIPES = [
@@ -65,7 +45,7 @@ export async function seedDatabase(db: Db): Promise<void> {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   await db
     .insert(users)
-    .values(DEMO_USERS.map((user) => ({ ...user, passwordHash })))
+    .values(DEMO_ACCOUNTS.map((account) => ({ ...account, passwordHash })))
     .onConflictDoUpdate({
       target: users.email,
       set: {

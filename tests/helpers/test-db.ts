@@ -1,13 +1,11 @@
-import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
+import { inject } from "vitest";
 import { __setDbForTests, type Db } from "@/server/db/client";
 import * as schema from "@/server/db/schema";
 import { insertFixtures } from "./fixtures";
-
-const MIGRATIONS_FOLDER = fileURLToPath(new URL("../../drizzle", import.meta.url));
 
 export interface TestDb {
   db: Db;
@@ -17,11 +15,12 @@ export interface TestDb {
 /**
  * A real Postgres running in memory (PGlite) with every migration applied, including
  * the integrity triggers, installed as the app's database (PLAN §9.1, D25).
+ * It boots from the snapshot that global-setup.ts migrated once for the whole run.
  */
 export async function createTestDb(): Promise<TestDb> {
-  const client = new PGlite();
+  const snapshot = await readFile(inject("migratedDbSnapshot"));
+  const client = new PGlite({ loadDataDir: new Blob([snapshot]) });
   const db = drizzle(client, { schema });
-  await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
   __setDbForTests(db);
   return { db, close: () => client.close() };
 }

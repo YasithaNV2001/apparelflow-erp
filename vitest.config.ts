@@ -15,10 +15,14 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // Migrates one database before any test file runs; each file boots from its snapshot.
+    globalSetup: ["./tests/helpers/global-setup.ts"],
     env: {
       JWT_SECRET: "test-only-secret-never-used-outside-vitest-0123456789",
     },
     // PGlite boots a real Postgres in WebAssembly; the first query in a file can take seconds.
     testTimeout: 20_000,
+    // Booting PGlite and applying the migrations happens in beforeAll; several files do it in parallel.
+    hookTimeout: 60_000,
   },
 });
