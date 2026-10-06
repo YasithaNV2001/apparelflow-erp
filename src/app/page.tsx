@@ -1,13 +1,9 @@
-export default function Home() {
-  return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-4 px-6 py-16">
-      <h1 className="text-3xl font-semibold text-ink">
-        ApparelFlow ERP · Cutting Gatekeeper
-      </h1>
-      <p className="text-lg text-ink-muted">
-        Cutting orders, component verification and the hand-off to the sewing
-        line. Sign-in is coming in the next release.
-      </p>
-    </main>
-  );
+import { redirect } from "next/navigation";
+import { ROLE_PROFILES } from "@/domain/roles";
+import { getCurrentUser } from "@/server/auth/current-user";
+
+/** "/" has no content of its own: it sends each user to their role's home, or to sign-in (PLAN §8.1). */
+export default async function Home() {
+  const user = await getCurrentUser();
+  redirect(user ? ROLE_PROFILES[user.role].home : "/login");
 }
