@@ -24,7 +24,7 @@ export function DemoCredentialPanel() {
         {DEMO_ACCOUNTS.map((account) => {
           const profile = ROLE_PROFILES[account.role];
           return (
-            <li key={account.role} className="flex flex-col gap-3 rounded-lg border border-field-border bg-surface p-4">
+            <li key={account.role} className="flex flex-col gap-3 rounded-lg border border-field-border bg-surface shadow-sm p-4">
               <h3 className="font-semibold text-ink">{profile.label}</h3>
               <p className="text-sm text-ink-muted">{profile.duty}</p>
               <dl className="text-sm text-ink">

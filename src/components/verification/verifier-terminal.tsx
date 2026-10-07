@@ -17,6 +17,7 @@ import {
   previewSheet,
   type SheetRow,
 } from "@/domain/count-sheet";
+import type { ComponentStatus } from "@/domain/constants";
 import type { CountSummary } from "@/domain/traffic-light";
 import type { OrderDto } from "@/lib/api-types";
 import { formatDateTime, formatSigned, formatYards } from "@/lib/format";
@@ -224,7 +225,7 @@ function SummaryBar({
   onRetry: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-field-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-lg border border-field-border bg-surface shadow-sm p-4 sm:flex-row sm:items-center sm:justify-between">
       <ul aria-label="Count summary" className="flex flex-wrap gap-2">
         {SUMMARY_CHIPS.map((chip) => (
           <li key={chip.key} className={`rounded-full px-3 py-1 text-sm font-semibold ${chip.className}`}>
@@ -264,6 +265,14 @@ function AutosaveIndicator({ state, onRetry }: { state: AutosaveState; onRetry: 
   );
 }
 
+/** A row's left edge repeats its traffic light, so a shortage stands out at a glance; the pill still says it in words. */
+const ROW_EDGES: Record<ComponentStatus, string> = {
+  GREEN: "border-l-status-green-edge",
+  YELLOW: "border-l-status-yellow-edge",
+  RED: "border-l-status-red-edge",
+  UNCOUNTED: "border-l-status-uncounted-edge",
+};
+
 /**
  * One component. Below 768 px it is a card (name and status, then expected and variance, then a
  * full-width count box); from 768 px the same cells line up as one row (PLAN §8.4).
@@ -282,7 +291,9 @@ function CountRow({
   onChange: (componentId: number, raw: string) => void;
 }) {
   return (
-    <li className="grid grid-cols-2 items-start gap-x-4 gap-y-3 rounded-lg border border-field-border bg-surface p-4 text-ink md:grid-cols-[minmax(0,1.4fr)_5.5rem_10rem_5.5rem_minmax(0,1.3fr)] md:items-center">
+    <li
+      className={`grid grid-cols-2 items-start gap-x-4 gap-y-3 rounded-lg border border-l-4 border-field-border ${ROW_EDGES[row.status]} ${row.status === "RED" ? "bg-status-red-tint" : "bg-surface"} p-4 text-ink shadow-sm md:grid-cols-[minmax(0,1.4fr)_5.5rem_10rem_5.5rem_minmax(0,1.3fr)] md:items-center`}
+    >
       <div className="md:order-1">
         <p className="text-lg font-semibold">{row.componentName}</p>
         <p className="text-sm text-ink-muted">{piecesPerGarment} per garment</p>
@@ -337,6 +348,34 @@ function Figure({ label, value, className }: { label: string; value: string; cla
   );
 }
 
+type DecisionState = "ready" | "short" | "counting";
+
+/** A shortage blocks for real; uncounted components only mean the count isn't finished yet. */
+function decisionState(summary: CountSummary): DecisionState {
+  if (summary.canApprove) {
+    return "ready";
+  }
+  return summary.red > 0 ? "short" : "counting";
+}
+
+const DECISION_CALLOUTS: Record<DecisionState, { icon: string; title: string; className: string }> = {
+  ready: {
+    icon: "✓",
+    title: "Every component is counted and none is short. This batch can be approved.",
+    className: "border-l-status-green-edge bg-status-green-tint text-status-green-ink",
+  },
+  short: {
+    icon: "✕",
+    title: "Approve is blocked: at least one component is short.",
+    className: "border-l-status-red-edge bg-status-red-tint text-status-red-ink",
+  },
+  counting: {
+    icon: "○",
+    title: "Approve unlocks once every component is counted and none is short.",
+    className: "border-l-status-uncounted-edge bg-page text-ink",
+  },
+};
+
 /** Approve stays disabled while anything blocks it, and the reasons are listed beside it (PLAN §8.2). */
 function DecisionPanel({
   summary,
@@ -351,30 +390,27 @@ function DecisionPanel({
 }) {
   const headingId = useId();
   const blockersId = useId();
+  const callout = DECISION_CALLOUTS[decisionState(summary)];
 
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-4 rounded-lg border border-field-border bg-surface p-4 text-ink"
+      className="flex flex-col gap-4 rounded-lg border border-field-border bg-surface shadow-sm p-4 text-ink"
     >
       <h2 id={headingId} className="text-xl font-semibold">
         Decision
       </h2>
-      <div id={blockersId}>
-        {summary.canApprove ? (
-          <p className="font-medium text-status-green-ink">
-            <span aria-hidden="true">✓ </span>
-            Every component is counted and none is short. This batch can be approved.
-          </p>
-        ) : (
-          <>
-            <p className="font-medium">Approve is blocked until these are resolved:</p>
-            <ul className="mt-1 list-disc pl-5">
-              {summary.blockers.map((blocker) => (
-                <li key={blocker}>{blocker}</li>
-              ))}
-            </ul>
-          </>
+      <div id={blockersId} className={`rounded-md border-l-4 px-4 py-3 ${callout.className}`}>
+        <p className="font-semibold">
+          <span aria-hidden="true">{callout.icon} </span>
+          {callout.title}
+        </p>
+        {summary.canApprove ? null : (
+          <ul className="mt-1 list-disc pl-5">
+            {summary.blockers.map((blocker) => (
+              <li key={blocker}>{blocker}</li>
+            ))}
+          </ul>
         )}
       </div>
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

@@ -8,7 +8,8 @@
   Text pairs are at least 4.5:1; borders and focus rings at least 3:1.
 */
 @theme {
-  --color-page: #f8fafc;
+  /* Slate-100 rather than near-white, so white cards stand out from the page. */
+  --color-page: #f1f5f9;
   --color-surface: #ffffff;
   --color-ink: #0f172a;
   --color-ink-muted: #334155;
@@ -33,6 +34,24 @@
   --color-status-red-ink: #7f1d1d;
   --color-status-uncounted: #f1f5f9;
   --color-status-uncounted-ink: #334155;
+
+  /* Count-sheet edges repeat each traffic light at a glance (each at least 3:1 against white). */
+  --color-status-green-edge: #16a34a;
+  --color-status-yellow-edge: #b45309;
+  --color-status-red-edge: #dc2626;
+  --color-status-uncounted-edge: #64748b;
+  --color-status-green-tint: #f0fdf4;
+  --color-status-red-tint: #fef2f2;
+
+  /*
+    The app bar: light text on navy. Against #0f172a: white 17.9:1, slate-300 12.0:1,
+    blue-300 9.9:1 (links and the focus ring), red-300 9.4:1 (errors).
+  */
+  --color-brand: #0f172a;
+  --color-on-brand: #ffffff;
+  --color-on-brand-muted: #cbd5e1;
+  --color-on-brand-link: #93c5fd;
+  --color-on-brand-error: #fca5a5;
 }
 
 @theme inline {

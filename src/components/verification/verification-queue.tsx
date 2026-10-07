@@ -50,7 +50,7 @@ function QueueCard({ order }: { order: OrderListItemDto }) {
   const sentBackFor = isRecount ? order.latestLog?.rejectionNote : null;
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-field-border bg-surface p-4 text-ink">
+    <li className="flex flex-col gap-3 rounded-lg border border-field-border bg-surface shadow-sm p-4 text-ink">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-mono text-lg font-semibold">{order.orderNo}</h2>
         <RoundBadge round={order.verificationRound} />
