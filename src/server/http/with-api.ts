@@ -24,9 +24,9 @@ type RouteParams = Record<string, string>;
  * context for routes without dynamic segments. The two-argument signature must stay last:
  * Next's build-time route check infers the parameter types from the last signature.
  */
-export interface RouteHandler  {
-  (request: Request):Promise<Response>;
-  (request: Request, context: { params: Promise<RouteParams> }):Promise<Response>;
+export interface RouteHandler {
+  (request: Request): Promise<Response>;
+  (request: Request, context: { params: Promise<RouteParams> }): Promise<Response>;
 }
 
 export interface ApiContext<A extends Access, S extends z.ZodType | undefined> {
@@ -52,8 +52,7 @@ export function withApi<const A extends Access, S extends z.ZodType | undefined 
   options: ApiOptions<A, S>,
   handler: (context: ApiContext<A, S>) => Promise<Response>,
 ): RouteHandler {
-    return async (request: Request, routeContext?: { params: Promise<RouteParams> }) => {
-
+  return async (request: Request, routeContext?: { params: Promise<RouteParams> }) => {
     let user: SessionUser | null = null;
     try {
       user = await authenticate(request, options.access);
