@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button, buttonClasses } from "@/components/ui/button";
 import type { OrderListItemDto } from "@/lib/api-types";
 import { formatDateTime } from "@/lib/format";
+import { RoundBadge } from "./round-badge";
 import { useVerificationQueue } from "./verification-queries";
 
 /** The verifier's home (PLAN §8.2): every batch waiting for a physical count, oldest first. */
@@ -52,12 +53,7 @@ function QueueCard({ order }: { order: OrderListItemDto }) {
     <li className="flex flex-col gap-3 rounded-lg border border-field-border bg-surface p-4 text-ink">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-mono text-lg font-semibold">{order.orderNo}</h2>
-        {isRecount ? (
-          <span className="rounded-full bg-status-yellow px-2.5 py-0.5 text-sm font-semibold text-status-yellow-ink">
-            <span aria-hidden="true">↻ </span>
-            Round {order.verificationRound} recount
-          </span>
-        ) : null}
+        <RoundBadge round={order.verificationRound} />
       </div>
       <p className="text-lg">
         {order.recipe.name} <span className="text-ink-muted">×</span> {order.targetQty}
