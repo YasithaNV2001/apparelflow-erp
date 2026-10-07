@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import type { OrderStatus } from "../../domain/constants";
 import { nextStatus } from "../../domain/state-machine";
 import type { SewingOrderDto } from "../../lib/api-types";
@@ -25,6 +25,17 @@ export async function listSewingQueue(): Promise<SewingOrderDto[]> {
   return findSewingOrders(getDb(), eq(cuttingOrders.status, "VERIFIED"), [
     asc(cuttingOrders.updatedAt),
     asc(cuttingOrders.id),
+  ]);
+}
+
+/**
+ * Batches on the assembly line (PLAN D7), most recently started first, each with who started it
+ * and when. Filtered in SQL, exactly like the queue.
+ */
+export async function listSewingInProgress(): Promise<SewingOrderDto[]> {
+  return findSewingOrders(getDb(), eq(cuttingOrders.status, "SEWING_IN_PROGRESS"), [
+    desc(cuttingOrders.sewingStartedAt),
+    desc(cuttingOrders.id),
   ]);
 }
 
