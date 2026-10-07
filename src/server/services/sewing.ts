@@ -1,12 +1,19 @@
 import "server-only";
-import { asc, eq, type SQL } from "drizzle-orm";
+import { and, asc, eq, sql, type SQL } from "drizzle-orm";
+import type { OrderStatus } from "../../domain/constants";
+import { nextStatus } from "../../domain/state-machine";
 import type { SewingOrderDto } from "../../lib/api-types";
+import type { SessionUser } from "../auth/session";
 import { getDb, type Db } from "../db/client";
 import { cuttingOrders, verificationLogs } from "../db/schema";
+import { ConcurrentUpdateError, InvalidStateError, NotFoundError } from "../http/errors";
 import { findOrderViews, type OrderView } from "./order-views";
 
 // Only the approval travels with a batch into sewing, never earlier rejections (PLAN §7.2).
 const APPROVAL_LOG_ONLY = eq(verificationLogs.decision, "APPROVED");
+
+// The only statuses the sewing role can ever see (PLAN D21); any other order is "not found".
+const SEWING_STATUSES: readonly OrderStatus[] = ["VERIFIED", "SEWING_IN_PROGRESS"];
 
 /**
  * The sewing queue (PLAN §7.2, PDF §9): approved batches nobody has started yet. The status
@@ -19,6 +26,44 @@ export async function listSewingQueue(): Promise<SewingOrderDto[]> {
     asc(cuttingOrders.updatedAt),
     asc(cuttingOrders.id),
   ]);
+}
+
+/**
+ * "Start Sewing Assembly" (PLAN §5.2): VERIFIED → SEWING_IN_PROGRESS, signed with the session user
+ * and the database clock. An order sewing cannot see is a 404 (D21), so the endpoint never reveals
+ * that an unverified batch exists; a batch already on the assembly line is a 409.
+ */
+export async function startSewing(user: SessionUser, orderId: number): Promise<SewingOrderDto> {
+  const db = getDb();
+  await db.transaction(async (tx) => {
+    const [order] = await tx
+      .select({ status: cuttingOrders.status })
+      .from(cuttingOrders)
+      .where(eq(cuttingOrders.id, orderId))
+      .for("update");
+    if (!order || !SEWING_STATUSES.includes(order.status)) {
+      throw new NotFoundError();
+    }
+    if (nextStatus("startSewing", order.status) === null) {
+      throw new InvalidStateError("Sewing has already started on this batch.");
+    }
+    // The status condition turns a lost race into a 409 instead of a second start.
+    const started = await tx
+      .update(cuttingOrders)
+      .set({ status: "SEWING_IN_PROGRESS", sewingStartedBy: user.id, sewingStartedAt: sql`now()` })
+      .where(and(eq(cuttingOrders.id, orderId), eq(cuttingOrders.status, "VERIFIED")))
+      .returning({ id: cuttingOrders.id });
+    if (started.length === 0) {
+      throw new ConcurrentUpdateError();
+    }
+  });
+  // Read back with a status condition, like every other sewing read.
+  const [started] = await findSewingOrders(
+    db,
+    and(eq(cuttingOrders.id, orderId), eq(cuttingOrders.status, "SEWING_IN_PROGRESS")),
+    [asc(cuttingOrders.id)],
+  );
+  return started;
 }
 
 async function findSewingOrders(
