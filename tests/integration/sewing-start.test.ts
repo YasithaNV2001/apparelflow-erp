@@ -125,6 +125,14 @@ describe("POST /api/orders/:id/start-sewing", () => {
     expect((await startAs("sewing", orderId)).status).toBe(404);
   });
 
+  it("answers a hidden order exactly like one that does not exist", async () => {
+    const pending = await createOrder(testDb.db);
+    const hidden = await startAs("sewing", pending.id);
+    const missing = await startAs("sewing", 999);
+    expect(hidden.status).toBe(404);
+    expect(await hidden.text()).toBe(await missing.text());
+  });
+
   it.each(["supervisor", "verifier"] as const)("refuses the %s role with 403 and changes nothing", async (role) => {
     const order = await verifiedOrder();
     const response = await startAs(role, order.id);
