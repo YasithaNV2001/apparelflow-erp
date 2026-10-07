@@ -129,7 +129,13 @@ function ComponentCounts({ order }: { order: SewingOrderDto }) {
         </span>
         Component counts ({order.items.length})
       </summary>
-      <div className="overflow-x-auto border-t border-field-border">
+      {/* Scrolls sideways on narrow screens, so keyboard users can focus it and scroll with the arrow keys. */}
+      <div
+        role="region"
+        aria-label={`Component counts for ${order.orderNo}`}
+        tabIndex={0}
+        className="overflow-x-auto border-t border-field-border"
+      >
         <table className="w-full min-w-120 text-left text-sm text-ink">
           <thead className="bg-page">
             <tr>
