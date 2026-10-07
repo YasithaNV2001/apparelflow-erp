@@ -63,7 +63,7 @@ function ReadyForAssembly({ onStart }: { onStart: (order: SewingOrderDto) => voi
 function ReadyCard({ order, onStart }: { order: SewingOrderDto; onStart: (order: SewingOrderDto) => void }) {
   const { approval } = order;
   return (
-    <li className="flex min-w-0 flex-col gap-4 rounded-lg border border-field-border bg-surface p-4 text-ink">
+    <li className="flex min-w-0 flex-col gap-4 rounded-lg border border-field-border bg-surface shadow-sm p-4 text-ink">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-mono text-lg font-semibold">{order.orderNo}</h3>
         <OrderStatusBadge status={order.status} />
@@ -186,7 +186,7 @@ function AssemblyLine() {
             {orders.map((order) => (
               <li
                 key={order.id}
-                className="flex flex-col items-start gap-2 rounded-lg border border-field-border bg-surface p-4 text-ink sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col items-start gap-2 rounded-lg border border-field-border bg-surface shadow-sm p-4 text-ink sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
                   <h3 className="font-mono font-semibold">{order.orderNo}</h3>

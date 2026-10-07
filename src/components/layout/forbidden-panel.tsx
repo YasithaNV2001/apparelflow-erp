@@ -12,7 +12,7 @@ export function ForbiddenPanel({ role }: { role: Role }) {
   return (
     <section
       aria-labelledby="forbidden-heading"
-      className="mx-auto flex max-w-xl flex-col gap-3 rounded-lg border border-field-border bg-surface p-6"
+      className="mx-auto flex max-w-xl flex-col gap-3 rounded-lg border border-field-border bg-surface shadow-sm p-6"
     >
       <h1 id="forbidden-heading" className="text-2xl font-semibold text-ink">
         403 — not available for your role

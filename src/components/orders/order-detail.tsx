@@ -81,7 +81,7 @@ function OrderView({ order }: { order: OrderDto }) {
         </p>
       ) : null}
 
-      <dl className="grid gap-4 rounded-lg border border-field-border bg-surface p-4 text-ink sm:grid-cols-3">
+      <dl className="grid gap-4 rounded-lg border border-field-border bg-surface shadow-sm p-4 text-ink sm:grid-cols-3">
         <div>
           <dt className="text-sm font-medium text-ink-muted">Fabric used</dt>
           <dd className="tabular-nums">{formatYards(order.actualFabricYds)}</dd>
@@ -122,7 +122,7 @@ function ItemsTable({ items, summary }: { items: OrderItemDto[]; summary: OrderD
         role="region"
         aria-label="Component table"
         tabIndex={0}
-        className="overflow-x-auto rounded-lg border border-field-border bg-surface"
+        className="overflow-x-auto rounded-lg border border-field-border bg-surface shadow-sm"
       >
         <table className="w-full min-w-[40rem] text-left text-sm text-ink">
           <thead className="bg-page">
@@ -163,7 +163,7 @@ function DecisionTimeline({ logs }: { logs: VerificationLogDto[] }) {
       ) : (
         <ol className="flex flex-col gap-3">
           {logs.map((log) => (
-            <li key={log.id} className="flex flex-col gap-1 rounded-lg border border-field-border bg-surface p-4 text-ink">
+            <li key={log.id} className="flex flex-col gap-1 rounded-lg border border-field-border bg-surface shadow-sm p-4 text-ink">
               <p className="font-semibold">
                 <span aria-hidden="true">{log.decision === "APPROVED" ? "✓ " : "✕ "}</span>
                 {log.decision === "APPROVED" ? "Approved" : "Rejected"} by {log.verifier.fullName}

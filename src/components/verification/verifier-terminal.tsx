@@ -224,7 +224,7 @@ function SummaryBar({
   onRetry: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-field-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-lg border border-field-border bg-surface shadow-sm p-4 sm:flex-row sm:items-center sm:justify-between">
       <ul aria-label="Count summary" className="flex flex-wrap gap-2">
         {SUMMARY_CHIPS.map((chip) => (
           <li key={chip.key} className={`rounded-full px-3 py-1 text-sm font-semibold ${chip.className}`}>
@@ -282,7 +282,7 @@ function CountRow({
   onChange: (componentId: number, raw: string) => void;
 }) {
   return (
-    <li className="grid grid-cols-2 items-start gap-x-4 gap-y-3 rounded-lg border border-field-border bg-surface p-4 text-ink md:grid-cols-[minmax(0,1.4fr)_5.5rem_10rem_5.5rem_minmax(0,1.3fr)] md:items-center">
+    <li className="grid grid-cols-2 items-start gap-x-4 gap-y-3 rounded-lg border border-field-border bg-surface shadow-sm p-4 text-ink md:grid-cols-[minmax(0,1.4fr)_5.5rem_10rem_5.5rem_minmax(0,1.3fr)] md:items-center">
       <div className="md:order-1">
         <p className="text-lg font-semibold">{row.componentName}</p>
         <p className="text-sm text-ink-muted">{piecesPerGarment} per garment</p>
@@ -355,7 +355,7 @@ function DecisionPanel({
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-4 rounded-lg border border-field-border bg-surface p-4 text-ink"
+      className="flex flex-col gap-4 rounded-lg border border-field-border bg-surface shadow-sm p-4 text-ink"
     >
       <h2 id={headingId} className="text-xl font-semibold">
         Decision

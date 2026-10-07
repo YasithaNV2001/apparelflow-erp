@@ -153,7 +153,7 @@ function OrdersTable({
 }) {
   return (
     // The table scrolls inside its own box on narrow screens, so the page itself never does (§8.4).
-    <div className="overflow-x-auto rounded-lg border border-field-border bg-surface">
+    <div className="overflow-x-auto rounded-lg border border-field-border bg-surface shadow-sm">
       <table className="w-full min-w-[60rem] text-left text-sm text-ink">
         <thead className="bg-page">
           <tr>

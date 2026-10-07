@@ -35,7 +35,8 @@ export function RoleSwitcher({ currentRole }: { currentRole: Role }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-2">
-      <label htmlFor={selectId} className="text-sm font-medium text-ink">
+      {/* Sits in the navy app bar, so its own text uses the light on-brand colours. */}
+      <label htmlFor={selectId} className="text-sm font-medium text-on-brand">
         Switch role
       </label>
       <select
@@ -56,7 +57,7 @@ export function RoleSwitcher({ currentRole }: { currentRole: Role }) {
         {signIn.isPending ? "Switching…" : "Switch"}
       </Button>
       {signIn.error ? (
-        <p id={errorId} role="alert" className="text-sm font-medium text-error">
+        <p id={errorId} role="alert" className="text-sm font-medium text-on-brand-error">
           {signIn.error.message}
         </p>
       ) : null}
