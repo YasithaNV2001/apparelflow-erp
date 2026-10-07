@@ -131,6 +131,18 @@ export async function findUserId(db: Db, email: string): Promise<number> {
   return user.id;
 }
 
+/** Moves a VERIFIED order onto the assembly line, the way the start-sewing service does (PLAN §5.2). */
+export async function recordSewingStart(db: Db, order: TestOrder): Promise<void> {
+  await db
+    .update(cuttingOrders)
+    .set({
+      status: "SEWING_IN_PROGRESS",
+      sewingStartedBy: await findUserId(db, TEST_USERS.sewing.email),
+      sewingStartedAt: new Date(),
+    })
+    .where(eq(cuttingOrders.id, order.id));
+}
+
 /**
  * Records a verifier decision directly, the way the P4 approve/reject services will:
  * status change first (the triggers check it), then the append-only log row.

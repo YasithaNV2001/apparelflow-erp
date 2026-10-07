@@ -1,5 +1,6 @@
 import "server-only";
-import { asc, desc, eq, inArray, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { classifyComponent, summarize } from "../../domain/traffic-light";
 import { calculateWastage } from "../../domain/wastage";
 import type {
@@ -7,6 +8,7 @@ import type {
   OrderItemDto,
   OrderListItemDto,
   OrderSummaryDto,
+  UserRefDto,
   VerificationLogDto,
 } from "../../lib/api-types";
 import type { Db } from "../db/client";
@@ -19,21 +21,34 @@ import {
   verificationLogs,
 } from "../db/schema";
 
-/** One order as every endpoint presents it: shared fields, its items and its full decision log. */
+/** Who pressed "Start Sewing Assembly", and when (PLAN §5.2). */
+export interface SewingStart {
+  startedBy: UserRefDto;
+  startedAt: string;
+}
+
+/** One order as every endpoint presents it: shared fields, its items and its decision log. */
 export interface OrderView {
   base: OrderSummaryDto;
   items: OrderItemDto[];
   logs: VerificationLogDto[];
+  /** Null until sewing starts. */
+  sewing: SewingStart | null;
 }
+
+// The users table joined a second time, for whoever started sewing; the first join is the creator.
+const sewingStarter = alias(users, "sewing_starter");
 
 /**
  * Loads the orders matching `where` with items, summary and logs, newest first unless `orderBy`
- * says otherwise. Three queries in total, however many orders match, so lists never do one query per row.
+ * says otherwise. `logFilter` narrows the logs in SQL, e.g. to the approval alone for sewing.
+ * Three queries in total, however many orders match, so lists never do one query per row.
  */
 export async function findOrderViews(
   db: Db,
   where?: SQL,
   orderBy: SQL[] = [desc(cuttingOrders.id)],
+  logFilter?: SQL,
 ): Promise<OrderView[]> {
   const orderRows = await db
     .select({
@@ -45,10 +60,12 @@ export async function findOrderViews(
         category: recipes.category,
       },
       creator: { id: users.id, fullName: users.fullName },
+      starter: { id: sewingStarter.id, fullName: sewingStarter.fullName },
     })
     .from(cuttingOrders)
     .innerJoin(recipes, eq(recipes.id, cuttingOrders.recipeId))
     .innerJoin(users, eq(users.id, cuttingOrders.createdBy))
+    .leftJoin(sewingStarter, eq(sewingStarter.id, cuttingOrders.sewingStartedBy))
     .where(where)
     .orderBy(...orderBy);
   if (orderRows.length === 0) {
@@ -56,9 +73,12 @@ export async function findOrderViews(
   }
 
   const orderIds = orderRows.map((row) => row.order.id);
-  const [itemRows, logRows] = await Promise.all([loadItems(db, orderIds), loadLogs(db, orderIds)]);
+  const [itemRows, logRows] = await Promise.all([
+    loadItems(db, orderIds),
+    loadLogs(db, orderIds, logFilter),
+  ]);
 
-  return orderRows.map(({ order, recipe, creator }) => {
+  return orderRows.map(({ order, recipe, creator, starter }) => {
     const items = itemRows.filter((item) => item.orderId === order.id).map(toItemDto);
     const logs = logRows.filter((log) => log.orderId === order.id).map(toLogDto);
     const wastage = calculateWastage(
@@ -84,7 +104,11 @@ export async function findOrderViews(
       createdAt: order.createdAt.toISOString(),
       submittedAt: order.submittedAt?.toISOString() ?? null,
     };
-    return { base, items, logs };
+    const sewing =
+      starter && order.sewingStartedAt
+        ? { startedBy: starter, startedAt: order.sewingStartedAt.toISOString() }
+        : null;
+    return { base, items, logs, sewing };
   });
 }
 
@@ -117,7 +141,7 @@ function loadItems(db: Db, orderIds: number[]) {
     .orderBy(asc(verificationItems.orderId), asc(recipeComponents.sortOrder));
 }
 
-function loadLogs(db: Db, orderIds: number[]) {
+function loadLogs(db: Db, orderIds: number[], logFilter?: SQL) {
   return db
     .select({
       log: verificationLogs,
@@ -125,7 +149,7 @@ function loadLogs(db: Db, orderIds: number[]) {
     })
     .from(verificationLogs)
     .innerJoin(users, eq(users.id, verificationLogs.verifierId))
-    .where(inArray(verificationLogs.orderId, orderIds))
+    .where(and(inArray(verificationLogs.orderId, orderIds), logFilter))
     .orderBy(asc(verificationLogs.createdAt), asc(verificationLogs.id))
     .then((rows) => rows.map(({ log, verifier }) => ({ ...log, verifier })));
 }

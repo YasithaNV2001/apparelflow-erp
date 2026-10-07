@@ -5,7 +5,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { POST as approve } from "@/app/api/orders/[id]/approve/route";
 import { PUT as putCounts } from "@/app/api/orders/[id]/counts/route";
 import { POST as reject } from "@/app/api/orders/[id]/reject/route";
+import { POST as startSewing } from "@/app/api/orders/[id]/start-sewing/route";
+import { GET as getSewingQueue } from "@/app/api/sewing/queue/route";
+import type { SewingOrderDto } from "@/lib/api-types";
 import { cuttingOrders, verificationItems, verificationLogs } from "@/server/db/schema";
+import { listSewingQueue } from "@/server/services/sewing";
 import { apiRequest, routeParams, sessionCookieFor } from "../helpers/auth";
 import { countSheet, createOrder, findUserId, type TestOrder } from "../helpers/factories";
 import { TEST_USERS } from "../helpers/fixtures";
@@ -52,6 +56,15 @@ async function saveCountsAs(role: Role, order: TestOrder, counts: number[]): Pro
     body: { items: countSheet(order, counts) },
   });
   return putCounts(request, routeParams(order.id));
+}
+
+async function startSewingAs(role: Role, order: TestOrder): Promise<Response> {
+  const request = apiRequest(`/api/orders/${order.id}/start-sewing`, { method: "POST", cookie: await cookieFor(role) });
+  return startSewing(request, routeParams(order.id));
+}
+
+async function sewingQueueAs(role: Role, query = ""): Promise<Response> {
+  return getSewingQueue(apiRequest(`/api/sewing/queue${query}`, { cookie: await cookieFor(role) }));
 }
 
 async function storedOrder(order: TestOrder) {
@@ -142,6 +155,35 @@ describe("PDF-required tests", () => {
     expect(stored.logs).toHaveLength(0);
   });
 
-  // Added with the sewing queue in Phase 5.
-  it.todo("PDF Test 5: unapproved orders never appear in the Sewing Queue database query");
+  it("PDF Test 5: unapproved orders never appear in the Sewing Queue database query", async () => {
+    // One order in every status, each reached through the real endpoints.
+    await createOrder(testDb.db, { status: "CUTTING_IN_PROGRESS" });
+    await createOrder(testDb.db); // pending, not counted yet
+    const countedShort = await createOrder(testDb.db); // pending, cuffs short
+    expect((await saveCountsAs("verifier", countedShort, CUFFS_SHORT)).status).toBe(200);
+    const rejected = await createOrder(testDb.db);
+    const rejection = { rejectionNote: "Shortage: Sleeve Cuffs 96/100 (−4).", items: countSheet(rejected, CUFFS_SHORT) };
+    expect((await rejectAs("verifier", rejected, rejection)).status).toBe(200);
+    const verified = await createOrder(testDb.db);
+    expect((await approveAs("verifier", verified, { items: countSheet(verified, ALL_GREEN) })).status).toBe(200);
+    const onAssemblyLine = await createOrder(testDb.db);
+    expect((await approveAs("verifier", onAssemblyLine, { items: countSheet(onAssemblyLine, ALL_GREEN) })).status).toBe(200);
+    expect((await startSewingAs("sewing", onAssemblyLine)).status).toBe(200);
+
+    const statuses = await testDb.db.select({ status: cuttingOrders.status }).from(cuttingOrders);
+    expect(new Set(statuses.map((row) => row.status))).toEqual(
+      new Set(["CUTTING_IN_PROGRESS", "PENDING_VERIFICATION", "REJECTED", "VERIFIED", "SEWING_IN_PROGRESS"]),
+    );
+
+    // The service's query on its own...
+    expect((await listSewingQueue()).map((order) => order.orderNo)).toEqual([verified.orderNo]);
+
+    // ...and the endpoint, even when the query string asks for more.
+    for (const query of ["", "?status=PENDING_VERIFICATION&all=true"]) {
+      const response = await sewingQueueAs("sewing", query);
+      expect(response.status, query).toBe(200);
+      const { orders } = (await response.json()) as { orders: SewingOrderDto[] };
+      expect(orders.map((order) => [order.orderNo, order.status]), query).toEqual([[verified.orderNo, "VERIFIED"]]);
+    }
+  });
 });
