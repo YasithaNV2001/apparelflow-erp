@@ -170,14 +170,18 @@ function OrdersTable({
           {orders.map((order) => (
             <tr key={order.id} className="border-t border-field-border align-top">
               <td className="px-3 py-3">
-                <Link href={`/cutting/orders/${order.id}`} className="font-mono font-semibold text-primary underline underline-offset-4">
+                {/* Padding cancelled by a negative margin: a 44 px tap target that stays in line with the row. */}
+                <Link
+                  href={`/cutting/orders/${order.id}`}
+                  className="-my-3 inline-block whitespace-nowrap py-3 font-mono font-semibold text-primary underline underline-offset-4"
+                >
                   {order.orderNo}
                 </Link>
               </td>
               <td className="px-3 py-3">{order.recipe.name}</td>
               <td className="px-3 py-3 tabular-nums">{order.targetQty}</td>
-              <td className="px-3 py-3 font-mono">{order.fabricRollId}</td>
-              <td className="px-3 py-3 tabular-nums">{formatYards(order.actualFabricYds)}</td>
+              <td className="whitespace-nowrap px-3 py-3 font-mono">{order.fabricRollId}</td>
+              <td className="whitespace-nowrap px-3 py-3 tabular-nums">{formatYards(order.actualFabricYds)}</td>
               <td className="px-3 py-3">
                 <WastageValue wastagePct={order.wastagePct} wastageCap={order.wastageCap} exceedsCap={order.wastageExceedsCap} />
               </td>
