@@ -14,7 +14,7 @@ This report covers how AI was used to build ApparelFlow ERP, where its output wa
 ### How the work was split
 
 - **Phases 0–2 (Mon 5 – Tue 6 Oct): guided mode.** I wrote every line of code and ran every command. Claude Code planned each step, explained it and reviewed what I wrote.
-- **From phase 3 (decided Tue 6 Oct, 22:10, to meet the deadline): Claude Code implemented.** I reviewed and merged every pull request myself, ran each phase's review-gate attacks against production with curl and in the browser, and every operation on the production database (migrate, seed, reset) waited for my explicit approval.
+- **From phase 3 (decided Tue 6 Oct, 22:10, to meet the deadline): Claude Code implemented.** I reviewed and merged every pull request myself, ran the review-gate attacks for the verification and sewing phases against production with curl and in the browser, and every operation on the production database (migrate, seed, reset) waited for my explicit approval.
 
 ### Prompting techniques
 
