@@ -15,7 +15,8 @@
     "db:generate": "node --conditions=react-server ./node_modules/drizzle-kit/bin.cjs generate",
     "db:migrate": "node --conditions=react-server ./node_modules/drizzle-kit/bin.cjs migrate",
     "db:seed": "node --conditions=react-server --import tsx scripts/seed.ts",
-    "db:reset": "node --conditions=react-server --import tsx scripts/reset.ts"
+    "db:reset": "node --conditions=react-server --import tsx scripts/reset.ts",
+    "smoke": "node --import tsx scripts/smoke.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.1",

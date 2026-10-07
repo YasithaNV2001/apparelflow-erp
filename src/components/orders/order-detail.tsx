@@ -117,7 +117,13 @@ function ItemsTable({ items, summary }: { items: OrderItemDto[]; summary: OrderD
       <p className="text-sm text-ink-muted">
         {summary.green} match · {summary.yellow} excess · {summary.red} short · {summary.uncounted} not counted
       </p>
-      <div className="overflow-x-auto rounded-lg border border-field-border bg-surface">
+      {/* Scrolls sideways on narrow screens, so keyboard users can focus it and scroll with the arrow keys. */}
+      <div
+        role="region"
+        aria-label="Component table"
+        tabIndex={0}
+        className="overflow-x-auto rounded-lg border border-field-border bg-surface"
+      >
         <table className="w-full min-w-[40rem] text-left text-sm text-ink">
           <thead className="bg-page">
             <tr>
