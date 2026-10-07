@@ -35,6 +35,14 @@
   --color-status-uncounted: #f1f5f9;
   --color-status-uncounted-ink: #334155;
 
+  /* Count-sheet edges repeat each traffic light at a glance (each at least 3:1 against white). */
+  --color-status-green-edge: #16a34a;
+  --color-status-yellow-edge: #b45309;
+  --color-status-red-edge: #dc2626;
+  --color-status-uncounted-edge: #64748b;
+  --color-status-green-tint: #f0fdf4;
+  --color-status-red-tint: #fef2f2;
+
   /*
     The app bar: light text on navy. Against #0f172a: white 17.9:1, slate-300 12.0:1,
     blue-300 9.9:1 (links and the focus ring), red-300 9.4:1 (errors).

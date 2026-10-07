@@ -63,7 +63,7 @@ function ReadyForAssembly({ onStart }: { onStart: (order: SewingOrderDto) => voi
 function ReadyCard({ order, onStart }: { order: SewingOrderDto; onStart: (order: SewingOrderDto) => void }) {
   const { approval } = order;
   return (
-    <li className="flex min-w-0 flex-col gap-4 rounded-lg border border-field-border bg-surface shadow-sm p-4 text-ink">
+    <li className="flex min-w-0 flex-col gap-4 rounded-lg border border-l-4 border-field-border border-l-status-green-edge bg-surface p-4 text-ink shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-mono text-lg font-semibold">{order.orderNo}</h3>
         <OrderStatusBadge status={order.status} />
