@@ -32,6 +32,23 @@ export interface SaveCountsVariables extends SaveCountsInput {
   orderId: number;
 }
 
+type OrderVersion = Pick<OrderDto, "status" | "verificationRound">;
+
+/**
+ * A save that committed just before a decision can still answer after it. Saves only succeed while
+ * the order is pending, so a cached order already decided in that round, or in a later round, is
+ * the newer one and must not be put back on the count sheet.
+ */
+export function isNewerThanSave(cached: OrderVersion | undefined, saved: OrderVersion): boolean {
+  if (cached === undefined) {
+    return false;
+  }
+  if (cached.verificationRound !== saved.verificationRound) {
+    return cached.verificationRound > saved.verificationRound;
+  }
+  return cached.status !== "PENDING_VERIFICATION";
+}
+
 /** Autosave. The server's answer replaces the cached order: its statuses are the authoritative ones. */
 export function useSaveCounts(): UseMutationResult<OrderDto, ApiClientError, SaveCountsVariables> {
   const queryClient = useQueryClient();
@@ -39,7 +56,10 @@ export function useSaveCounts(): UseMutationResult<OrderDto, ApiClientError, Sav
     mutationFn: async ({ orderId, items }) =>
       (await apiFetch<{ order: OrderDto }>(`/api/orders/${orderId}/counts`, { method: "PUT", body: { items } }))
         .order,
-    onSuccess: (order) => queryClient.setQueryData(orderKeys.detail(order.id), order),
+    onSuccess: (order) =>
+      queryClient.setQueryData<OrderDto>(orderKeys.detail(order.id), (cached) =>
+        isNewerThanSave(cached, order) ? cached : order,
+      ),
   });
 }
 
@@ -66,6 +86,8 @@ function useDecision<V extends { orderId: number }>(
   return useMutation<OrderDto, ApiClientError, V>({
     mutationFn: async ({ orderId, ...body }) =>
       (await apiFetch<{ order: OrderDto }>(`/api/orders/${orderId}/${action}`, { method: "POST", body })).order,
+    // A refetch already on its way could answer after the decision and show the old sheet again.
+    onMutate: ({ orderId }) => queryClient.cancelQueries({ queryKey: orderKeys.detail(orderId) }),
     onSuccess: (order) => {
       queryClient.setQueryData(orderKeys.detail(order.id), order);
       return queryClient.invalidateQueries({ queryKey: verificationKeys.queue });
