@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ForbiddenPanel } from "@/components/layout/forbidden-panel";
+import { SewingBoard } from "@/components/sewing/sewing-board";
 import { requireUser } from "@/server/auth/current-user";
 
 export const metadata: Metadata = { title: "Sewing queue · ApparelFlow ERP" };
@@ -9,11 +10,6 @@ export default async function SewingPage() {
   if (user.role !== "sewing_supervisor") {
     return <ForbiddenPanel role={user.role} />;
   }
-
-  return (
-    <section className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold text-ink">Sewing queue</h1>
-      <p className="text-ink-muted">Verified batches will appear here in a later phase.</p>
-    </section>
-  );
+  // The lists are fetched from the API in the browser (PLAN D2), which only ever sends verified batches.
+  return <SewingBoard />;
 }
