@@ -15,11 +15,12 @@ export interface TestDb {
 /**
  * A real Postgres running in memory (PGlite) with every migration applied, including
  * the integrity triggers, installed as the app's database (PLAN §9.1, D25).
- * It boots from the snapshot that global-setup.ts migrated once for the whole run.
+ * It boots from the snapshot that global-setup.ts migrated once for the whole run, and only
+ * resolves once Postgres is ready, so the boot happens in the calling hook, never in a test.
  */
 export async function createTestDb(): Promise<TestDb> {
   const snapshot = await readFile(inject("migratedDbSnapshot"));
-  const client = new PGlite({ loadDataDir: new Blob([snapshot]) });
+  const client = await PGlite.create({ loadDataDir: new Blob([snapshot]) });
   const db = drizzle(client, { schema });
   __setDbForTests(db);
   return { db, close: () => client.close() };
