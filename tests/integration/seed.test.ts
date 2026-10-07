@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifyPassword } from "@/server/auth/password";
 import { cuttingOrders, recipeComponents, recipes, users } from "@/server/db/schema";
 import { resetDatabase, seedDatabase } from "@/server/db/seed";
+import { getOrderForUser } from "@/server/services/orders";
 import { createOrder } from "../helpers/factories";
 import { createTestDb, type TestDb } from "../helpers/test-db";
 
@@ -87,16 +88,73 @@ describe("seed", () => {
   });
 
   it("is idempotent: a second run adds nothing", async () => {
-    await seedDatabase(testDb.db);
+    expect(await seedDatabase(testDb.db)).toEqual({ demoOrders: 0 });
     expect(await testDb.db.$count(users)).toBe(3);
     expect(await testDb.db.$count(recipes)).toBe(2);
     expect(await testDb.db.$count(recipeComponents)).toBe(10);
+    expect(await testDb.db.$count(cuttingOrders)).toBe(5);
   });
 
-  it("reset removes every order and restarts order numbers", async () => {
+  it("reset replaces every order with the five demo orders, numbered from CUT-00001", async () => {
     await createOrder(testDb.db);
-    await resetDatabase(testDb.db);
-    expect(await testDb.db.$count(cuttingOrders)).toBe(0);
-    expect(await createOrder(testDb.db)).toMatchObject({ orderNo: "CUT-00001" });
+    expect(await resetDatabase(testDb.db)).toEqual({ demoOrders: 5 });
+    const orders = await testDb.db
+      .select({ orderNo: cuttingOrders.orderNo })
+      .from(cuttingOrders)
+      .orderBy(asc(cuttingOrders.id));
+    expect(orders.map((order) => order.orderNo)).toEqual([
+      "CUT-00001",
+      "CUT-00002",
+      "CUT-00003",
+      "CUT-00004",
+      "CUT-00005",
+    ]);
+  });
+});
+
+describe("demo orders (PLAN §6.3, D27)", () => {
+  async function demoOrders() {
+    const ids = await testDb.db.select({ id: cuttingOrders.id }).from(cuttingOrders).orderBy(asc(cuttingOrders.id));
+    const supervisor = { id: 1, email: "", fullName: "", role: "cutting_supervisor" as const };
+    return Promise.all(ids.map(({ id }) => getOrderForUser(supervisor, id)));
+  }
+
+  it("shows one order in every state, with the plan's fabric and wastage figures", async () => {
+    const orders = await demoOrders();
+    expect(
+      orders.map((order) => [order.orderNo, order.recipe.code, order.targetQty, order.fabricRollId, order.status, order.wastagePct, order.wastageExceedsCap]),
+    ).toEqual([
+      ["CUT-00001", "REC-BL01", 50, "FAB-ROLL-882", "PENDING_VERIFICATION", 4.44, false],
+      ["CUT-00002", "REC-CT02", 40, "FAB-ROLL-915", "PENDING_VERIFICATION", 9.09, true],
+      ["CUT-00003", "REC-BL01", 30, "FAB-ROLL-871", "REJECTED", 1.85, false],
+      ["CUT-00004", "REC-CT02", 60, "FAB-ROLL-902", "VERIFIED", 6.06, false],
+      ["CUT-00005", "REC-BL01", 20, "FAB-ROLL-930", "CUTTING_IN_PROGRESS", 0, false],
+    ]);
+    expect(orders[0].items.every((item) => item.actualQty === null)).toBe(true);
+    expect(orders[1].items.every((item) => item.actualQty === null)).toBe(true);
+  });
+
+  it("rejects CUT-00003 for 56/60 cuffs, logged by the demo verifier", async () => {
+    const [, , rejected] = await demoOrders();
+    expect(rejected.items.at(-1)).toMatchObject({ componentName: "Sleeve Cuffs", actualQty: 56, status: "RED" });
+    expect(rejected.logs).toHaveLength(1);
+    expect(rejected.logs[0]).toMatchObject({
+      decision: "REJECTED",
+      verifier: { fullName: "Demo Cutting Verifier" },
+      rejectionNote: expect.stringContaining("Sleeve Cuffs 56/60"),
+    });
+  });
+
+  it("verifies CUT-00004 with 122/120 side straps and an approval note", async () => {
+    const [, , , verified] = await demoOrders();
+    expect(verified.items.map((item) => item.status)).toEqual(["GREEN", "GREEN", "GREEN", "GREEN", "YELLOW"]);
+    expect(verified.items.at(-1)).toMatchObject({ componentName: "Side Strap Accents", actualQty: 122, variance: 2 });
+    expect(verified.logs).toHaveLength(1);
+    expect(verified.logs[0]).toMatchObject({
+      decision: "APPROVED",
+      verifier: { fullName: "Demo Cutting Verifier" },
+      approvalNote: "2 spare side straps bundled with the batch.",
+      wastagePct: 6.06,
+    });
   });
 });

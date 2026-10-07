@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ForbiddenPanel } from "@/components/layout/forbidden-panel";
+import { VerificationQueue } from "@/components/verification/verification-queue";
 import { requireUser } from "@/server/auth/current-user";
 
 export const metadata: Metadata = { title: "Verification queue · ApparelFlow ERP" };
@@ -9,11 +10,6 @@ export default async function VerificationPage() {
   if (user.role !== "cutting_verifier") {
     return <ForbiddenPanel role={user.role} />;
   }
-
-  return (
-    <section className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold text-ink">Verification queue</h1>
-      <p className="text-ink-muted">The verifier terminal arrives in a later phase.</p>
-    </section>
-  );
+  // The queue is fetched from the API in the browser (PLAN D2).
+  return <VerificationQueue />;
 }

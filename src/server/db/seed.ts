@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "../../domain/demo-accounts";
 import { hashPassword } from "../auth/password";
 import type { Db } from "./client";
+import { seedDemoOrders } from "./demo-orders";
 import { recipeComponents, recipes, users } from "./schema";
 
 // Names and numbers exactly as PDF §7.1 specifies them (PLAN §6.3).
@@ -39,9 +40,9 @@ export const SEED_RECIPES = [
 
 /**
  * Idempotent: upserts users by email and recipes by code, so running it twice changes nothing
- * that matters. Demo orders are added in P4, through the real services.
+ * that matters. Demo orders are added only while no order exists. Returns how many were added.
  */
-export async function seedDatabase(db: Db): Promise<void> {
+export async function seedDatabase(db: Db): Promise<{ demoOrders: number }> {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   await db
     .insert(users)
@@ -87,13 +88,15 @@ export async function seedDatabase(db: Db): Promise<void> {
         },
       });
   }
+
+  return { demoOrders: await seedDemoOrders(db) };
 }
 
 /** Empties every table, restarts ids and order numbers, then seeds. TRUNCATE skips the row triggers. */
-export async function resetDatabase(db: Db): Promise<void> {
+export async function resetDatabase(db: Db): Promise<{ demoOrders: number }> {
   await db.execute(sql`
     TRUNCATE users, recipes, recipe_components, cutting_orders, verification_items, verification_logs
     RESTART IDENTITY CASCADE
   `);
-  await seedDatabase(db);
+  return seedDatabase(db);
 }

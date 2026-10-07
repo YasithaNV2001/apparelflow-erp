@@ -11,11 +11,14 @@ export function AppHeader({ user }: { user: SessionUser }) {
   return (
     <header className="border-b border-field-border bg-surface">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
-        <Link href={profile.home} className="text-lg font-semibold text-ink">
+        <Link href={profile.home} className="inline-flex min-h-11 items-center gap-1 text-lg font-semibold text-ink">
           ApparelFlow ERP <span className="font-normal text-ink-muted">· Cutting Gatekeeper</span>
         </Link>
         <nav aria-label="Main">
-          <Link href={profile.home} className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link
+            href={profile.home}
+            className="inline-flex min-h-11 items-center font-medium text-primary underline-offset-4 hover:underline"
+          >
             {profile.areaName}
           </Link>
         </nav>

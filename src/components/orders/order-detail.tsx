@@ -188,7 +188,10 @@ function DecisionTimeline({ logs }: { logs: VerificationLogDto[] }) {
 
 function BackLink() {
   return (
-    <Link href="/cutting" className="w-fit font-medium text-primary underline underline-offset-4">
+    <Link
+      href="/cutting"
+      className="inline-flex min-h-11 w-fit items-center font-medium text-primary underline underline-offset-4"
+    >
       ← All cutting orders
     </Link>
   );
