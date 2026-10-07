@@ -99,3 +99,15 @@ export interface OrderDto extends OrderSummaryDto {
   /** Every decision, oldest first. */
   logs: VerificationLogDto[];
 }
+
+/**
+ * A batch as the sewing supervisor receives it (PLAN §7.2): its counts and the approval that
+ * released it. Earlier rejections never travel to sewing.
+ */
+export interface SewingOrderDto extends OrderSummaryDto {
+  items: OrderItemDto[];
+  approval: VerificationLogDto;
+  /** Who pressed "Start Sewing Assembly", and when; null while the batch waits in the queue. */
+  sewingStartedBy: UserRefDto | null;
+  sewingStartedAt: string | null;
+}
