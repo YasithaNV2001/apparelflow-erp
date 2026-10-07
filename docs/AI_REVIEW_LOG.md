@@ -63,3 +63,9 @@ A running, factual record of problems found in AI-generated code during this pro
 - What the AI produced: the component tables in src/components/orders/order-detail.tsx (P3, 7a18e4e) and src/components/sewing/sewing-board.tsx (P5, 40acf97) sit in `<div className="overflow-x-auto">` with no focusable content.
 - Why it was wrong/risky: contrast/a11y. At 375 px those boxes scroll sideways, but keyboard-only users could not focus or scroll them, so the variance and status columns were out of reach (axe `scrollable-region-focusable`, serious; WCAG 2.1.1 Keyboard).
 - Fix: each scroll box is a named region with `tabIndex={0}`, so it takes focus, shows the focus ring and scrolls with the arrow keys; the re-run audit reports no violations.   - Commit: f06047d
+
+## 2026-10-07 13:50 — The role switcher signed keyboard users in on their first arrow key
+- Phase/Task: P6.1      - Found by: Claude self-review (keyboard-only walkthrough in Edge with Playwright)
+- What the AI produced: PLAN.md §8.1, written with Claude, specified the Role Switcher as "a `<select>` of the 3 personas; picking one runs a real login and redirects", implemented as specified in src/components/layout/role-switcher.tsx (P2, b473c4f) with the sign-in in the select's `onChange`.
+- Why it was wrong/risky: contrast/a11y. In Chrome and Edge on Windows a closed select changes value on ArrowUp/ArrowDown, so a keyboard user's first arrow key signed them in as the next role and navigated away, and the third role could not be reached without passing through the second (WCAG 3.2.2 On Input, failure F37).
+- Fix: choosing a role only selects it; a Switch button, disabled for the current role, performs the real sign-in (WCAG technique G80). The walkthrough now stays on the page after an arrow key and switches with Tab + Enter.   - Commit: 1f36c3d
