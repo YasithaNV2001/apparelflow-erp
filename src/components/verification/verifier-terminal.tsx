@@ -143,6 +143,7 @@ function CountSheet({ order, verifierName }: { order: OrderDto; verifierName: st
               row={row}
               piecesPerGarment={order.items[index].piecesPerGarment}
               draft={drafts[row.componentId] ?? ""}
+              isLast={index === rows.length - 1}
               onChange={changeCount}
             />
           ))}
@@ -271,11 +272,13 @@ function CountRow({
   row,
   piecesPerGarment,
   draft,
+  isLast,
   onChange,
 }: {
   row: SheetRow;
   piecesPerGarment: number;
   draft: string;
+  isLast: boolean;
   onChange: (componentId: number, raw: string) => void;
 }) {
   return (
@@ -303,15 +306,26 @@ function CountRow({
           size="large"
           inputMode="numeric"
           autoComplete="off"
-          enterKeyHint="next"
+          enterKeyHint={isLast ? "done" : "next"}
           value={draft}
           onChange={(event) => onChange(row.componentId, event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              focusNextCount(event.currentTarget);
+            }
+          }}
           error={row.check.kind === "invalid" ? row.check.error : undefined}
           className="w-full"
         />
       </div>
     </li>
   );
+}
+
+/** The keyboard's "next" key (Enter) moves on to the next component's count box. */
+function focusNextCount(box: HTMLInputElement): void {
+  const boxes = Array.from(box.closest("ol")?.querySelectorAll("input") ?? []);
+  boxes[boxes.indexOf(box) + 1]?.focus();
 }
 
 function Figure({ label, value, className }: { label: string; value: string; className: string }) {
