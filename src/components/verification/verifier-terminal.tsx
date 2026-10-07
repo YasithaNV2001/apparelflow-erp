@@ -392,7 +392,10 @@ function DecidedNotice({ order }: { order: OrderDto }) {
 
 function BackLink() {
   return (
-    <Link href={QUEUE_PATH} className="w-fit font-medium text-primary underline underline-offset-4">
+    <Link
+      href={QUEUE_PATH}
+      className="inline-flex min-h-11 w-fit items-center font-medium text-primary underline underline-offset-4"
+    >
       ← Verification queue
     </Link>
   );

@@ -20,7 +20,10 @@ export function ForbiddenPanel({ role }: { role: Role }) {
       <p className="text-ink-muted">
         You are signed in as a {profile.label}. This page belongs to a different role.
       </p>
-      <Link href={profile.home} className="font-medium text-primary underline underline-offset-4">
+      <Link
+        href={profile.home}
+        className="inline-flex min-h-11 w-fit items-center font-medium text-primary underline underline-offset-4"
+      >
         Go to {profile.areaName}
       </Link>
     </section>
